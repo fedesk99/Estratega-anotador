@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Estratega — Anotador</title>
+<style>
+  :root{
+    --felt-1:#0b3d2e;
+    --felt-2:#0f5238;
+    --gold:#d4af37;
+    --gold-soft:#e8cf7a;
+    --cream:#f3ead3;
+    --ink:#1c150a;
+    --panel:#123a2c;
+    --panel-2:#164534;
+    --danger:#c0392b;
+    --ok:#2e8b57;
+    --line:rgba(212,175,55,0.25);
+    --shadow:0 10px 30px rgba(0,0,0,0.45);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    min-height:100vh;
+    font-family:'Georgia','Iowan Old Style',ui-serif,serif;
+    color:var(--cream);
+    background:
+      radial-gradient(circle at 20% -10%, rgba(212,175,55,0.10), transparent 40%),
+      radial-gradient(circle at 100% 0%, rgba(212,175,55,0.08), transparent 35%),
+      repeating-linear-gradient(45deg, rgba(255,255,255,0.015) 0 2px, transparent 2px 4px),
+      linear-gradient(160deg, var(--felt-1), var(--felt-2) 60%, #0a2e22);
+    padding:24px 16px 80px;
+  }
+  .wrap{max-width:980px;margin:0 auto;}
+
+  header.top{
+    text-align:center;
+    margin-bottom:28px;
+  }
+  header.top h1{
+    font-size:2.4rem;
+    letter-spacing:3px;
+    margin:0;
+    color:var(--gold-soft);
+    text-shadow:0 2px 12px rgba(0,0,0,0.5);
+  }
+  header.top h1 span{color:var(--cream);}
+  header.top p{
+    margin:6px 0 0;
+    color:rgba(243,234,211,0.65);
+    font-size:0.95rem;
+    letter-spacing:1px;
+  }
+  .suits{letter-spacing:10px; opacity:0.85; font-size:1.3rem; margin-top:6px;}
+  .suits-label{letter-spacing:3px; color:var(--gold); opacity:0.6; font-size:0.68rem; margin-top:4px; text-transform:uppercase;}
+
+  .card-panel{
+    background:linear-gradient(180deg, var(--panel), var(--panel-2));
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:22px;
+    box-shadow:var(--shadow);
+    margin-bottom:20px;
+  }
+  .card-panel h2{
+    margin:0 0 16px;
+    font-size:1.15rem;
+    color:var(--gold-soft);
+    letter-spacing:1px;
+    border-bottom:1px solid var(--line);
+    padding-bottom:10px;
+  }
+
+  /* ---- CONFIG ---- */
+  .field{margin-bottom:16px;}
+  .field label{
+    display:block;
+    font-size:0.85rem;
+    color:var(--gold-soft);
+    margin-bottom:6px;
+    letter-spacing:0.5px;
+  }
+  .field small{display:block; color:rgba(243,234,211,0.55); margin-top:4px; font-size:0.78rem;}
+  select{
+    width:100%;
+    padding:10px 12px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    background:rgba(0,0,0,0.25);
+    color:var(--cream);
+    font-family:inherit;
+    font-size:1rem;
+  }
+  select:focus{
+    outline:none;
+    border-color:var(--gold);
+    box-shadow:0 0 0 3px rgba(212,175,55,0.15);
+  }
+  select option{background:#123a2c; color:var(--cream);}
+  input[type=number], input[type=text]{
+    width:100%;
+    padding:10px 12px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    background:rgba(0,0,0,0.25);
+    color:var(--cream);
+    font-family:inherit;
+    font-size:1rem;
+  }
+  input[type=number]:focus, input[type=text]:focus{
+    outline:none;
+    border-color:var(--gold);
+    box-shadow:0 0 0 3px rgba(212,175,55,0.15);
+  }
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  .toggle-group{display:flex; gap:10px; flex-wrap:wrap;}
+  .toggle-btn{
+    flex:1 1 auto;
+    padding:10px 14px;
+    border-radius:10px;
+    border:1px solid var(--line);
+    background:rgba(0,0,0,0.2);
+    color:var(--cream);
+    cursor:pointer;
+    font-family:inherit;
+    font-size:0.9rem;
+    text-align:center;
+    transition:all .15s ease;
+  }
+  .toggle-btn.active{
+    background:linear-gradient(180deg, var(--gold-soft), var(--gold));
+    color:var(--ink);
+    border-color:var(--gold);
+    font-weight:bold;
+    box-shadow:0 4px 14px rgba(212,175,55,0.35);
+  }
+  .toggle-btn small{display:block; font-weight:normal; opacity:0.75; font-size:0.72rem; margin-top:2px;}
+
+  .players-config{display:flex; flex-direction:column; gap:10px; margin-top:8px;}
+  .player-name-row{display:flex; align-items:center; gap:10px;}
+  .player-name-row .num{
+    width:28px; height:28px; border-radius:50%;
+    background:rgba(212,175,55,0.15); border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center;
+    font-size:0.85rem; color:var(--gold-soft); flex:none;
+  }
+
+  .stepper{display:flex; align-items:center; gap:10px;}
+  .stepper button{
+    width:38px; height:38px; border-radius:8px;
+    border:1px solid var(--line); background:rgba(0,0,0,0.25);
+    color:var(--gold-soft); font-size:1.2rem; cursor:pointer;
+  }
+  .stepper input{text-align:center;}
+
+  .btn{
+    display:inline-block;
+    padding:13px 22px;
+    border-radius:10px;
+    border:none;
+    background:linear-gradient(180deg, var(--gold-soft), var(--gold));
+    color:var(--ink);
+    font-weight:bold;
+    font-family:inherit;
+    font-size:1rem;
+    letter-spacing:0.5px;
+    cursor:pointer;
+    box-shadow:0 6px 18px rgba(212,175,55,0.3);
+    transition:transform .1s ease;
+  }
+  .btn:hover{transform:translateY(-1px);}
+  .btn:disabled{opacity:0.4; cursor:not-allowed; transform:none;}
+  .btn.secondary{
+    background:rgba(0,0,0,0.25);
+    color:var(--cream);
+    border:1px solid var(--line);
+    box-shadow:none;
+  }
+  .btn.danger{
+    background:linear-gradient(180deg,#e0685c,var(--danger));
+    color:#fff;
+  }
+  .btn-row{display:flex; gap:12px; flex-wrap:wrap; margin-top:6px;}
+
+  /* ---- SCOREBOARD ---- */
+  .scoreboard{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(150px,1fr));
+    gap:14px;
+    margin-bottom:20px;
+  }
+  .player-card{
+    position:relative;
+    background:linear-gradient(180deg, var(--panel), var(--panel-2));
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:16px 14px;
+    text-align:center;
+    box-shadow:var(--shadow);
+  }
+  .player-card.dealer{border-color:var(--gold); box-shadow:0 0 0 2px rgba(212,175,55,0.35), var(--shadow);}
+  .player-card .badge{
+    position:absolute; top:8px; right:8px;
+    background:rgba(212,175,55,0.9);
+    color:var(--ink);
+    font-size:0.72rem;
+    font-weight:bold;
+    padding:3px 7px;
+    border-radius:20px;
+    min-width:18px;
+  }
+  .player-card .dealer-tag{
+    position:absolute; top:8px; left:8px;
+    font-size:0.65rem;
+    color:var(--gold-soft);
+    letter-spacing:0.5px;
+    border:1px solid var(--line);
+    padding:2px 6px;
+    border-radius:20px;
+  }
+  .player-card .pname{
+    font-size:0.95rem;
+    color:var(--gold-soft);
+    margin-top:6px;
+    letter-spacing:0.5px;
+  }
+  .player-card .pscore{
+    font-size:2rem;
+    font-weight:bold;
+    color:var(--cream);
+    margin-top:4px;
+  }
+
+  /* ---- ROUND INFO ---- */
+  .round-info{
+    display:flex; align-items:center; justify-content:space-between;
+    flex-wrap:wrap; gap:10px;
+    margin-bottom:18px;
+  }
+  .round-info .cards-count{
+    font-size:2.6rem; font-weight:bold; color:var(--gold-soft);
+    line-height:1;
+  }
+  .round-info .cards-label{font-size:0.8rem; color:rgba(243,234,211,0.6);}
+  .round-info .round-num{font-size:1.1rem; color:var(--cream);}
+
+  /* ---- BID / RESULT AREA ---- */
+  .bid-list{display:flex; flex-direction:column; gap:10px;}
+  .bid-row{
+    display:flex; align-items:center; justify-content:space-between;
+    background:rgba(0,0,0,0.2);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:10px 14px;
+    gap:12px;
+  }
+  .bid-row .pname{flex:1; font-size:0.95rem;}
+  .bid-row .pname .tag{font-size:0.7rem; color:var(--gold-soft); display:block; opacity:0.8;}
+  .bid-row input[type=number]{width:80px; text-align:center;}
+  .bid-row.error{border-color:var(--danger);}
+  .bid-row .warn{font-size:0.75rem; color:#e97a6d; margin-top:4px;}
+
+  .result-row{
+    display:flex; align-items:center; justify-content:space-between;
+    background:rgba(0,0,0,0.2);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:10px 14px;
+    gap:12px;
+    margin-bottom:10px;
+  }
+  .result-row .pname{flex:1;}
+  .result-row .bidval{
+    font-size:0.8rem; color:var(--gold-soft);
+    background:rgba(212,175,55,0.12);
+    padding:2px 8px; border-radius:20px;
+  }
+  .result-toggle{display:flex; gap:6px;}
+  .result-toggle button{
+    padding:8px 12px; border-radius:8px; border:1px solid var(--line);
+    background:rgba(0,0,0,0.25); color:var(--cream); cursor:pointer; font-family:inherit;
+  }
+  .result-toggle button.yes.active{background:var(--ok); border-color:var(--ok); color:#fff; font-weight:bold;}
+  .result-toggle button.no.active{background:var(--danger); border-color:var(--danger); color:#fff; font-weight:bold;}
+
+  /* ---- HISTORY ---- */
+  .history-wrap{overflow-x:auto;}
+  table{border-collapse:collapse; width:100%; font-size:0.85rem;}
+  th, td{padding:8px 10px; text-align:center; border-bottom:1px solid var(--line); white-space:nowrap;}
+  th{color:var(--gold-soft); font-weight:normal; letter-spacing:0.5px;}
+  tr:last-child td{border-bottom:none;}
+  td.cardsn{color:var(--gold-soft); font-weight:bold;}
+  .cell-hit{color:var(--ok); font-weight:bold;}
+  .cell-miss{color:#e97a6d;}
+
+  .winner-banner{
+    text-align:center;
+    background:linear-gradient(180deg, var(--gold-soft), var(--gold));
+    color:var(--ink);
+    border-radius:14px;
+    padding:20px;
+    margin-bottom:20px;
+    font-size:1.3rem;
+    font-weight:bold;
+    box-shadow:0 10px 30px rgba(212,175,55,0.4);
+  }
+  .winner-banner .sub{display:block; font-size:0.85rem; font-weight:normal; margin-top:6px;}
+
+  .hidden{display:none !important;}
+  footer{
+    text-align:center;
+    margin-top:30px;
+    color:rgba(243,234,211,0.4);
+    font-size:0.78rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <h1>ESTRATEGA<span> · anotador</span></h1>
+    <div class="suits">⚔️🪵🪙🏆</div>
+    <p>Juego de bazas basado en los valores del Truco</p>
+  </header>
+
+  <!-- ============ CONFIG SCREEN ============ -->
+  <section id="configScreen" class="card-panel">
+    <h2>Configuración de la partida</h2>
+
+    <div class="field">
+      <label>Modo de reparto</label>
+      <div class="toggle-group">
+        <button type="button" class="toggle-btn active" data-mode="uno" onclick="setMode('uno')">
+          De a uno <small>3, 4, 5 … máximo … 2, 1</small>
+        </button>
+        <button type="button" class="toggle-btn" data-mode="impares" onclick="setMode('impares')">
+          Impares <small>3, 5, 7 … máximo impar … 3, 1</small>
+        </button>
+      </div>
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label>Cantidad de jugadores</label>
+        <div class="stepper">
+          <button type="button" onclick="changePlayers(-1)">−</button>
+          <input type="number" id="numPlayers" value="4" min="2" max="8" oninput="onPlayersInput()">
+          <button type="button" onclick="changePlayers(1)">+</button>
+        </div>
+        <small id="maxCardsHint"></small>
+      </div>
+
+      <div class="field">
+        <label>Puntos para ganar</label>
+        <input type="number" id="targetScore" value="100" min="10" step="5">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Cartas en la primera mano</label>
+      <input type="number" id="firstHand" value="3" min="1" oninput="onFirstHandInput()">
+      <small id="firstHandHint">El reparto siempre empieza subiendo hasta el máximo y recién ahí baja hasta 1, para volver a subir.</small>
+    </div>
+
+    <div class="field">
+      <label>Máximo de cartas por ronda</label>
+      <input type="number" id="maxCards" value="7" min="1" oninput="updateMaxHint()">
+      <small id="maxCardsCustomHint"></small>
+    </div>
+
+    <div class="field">
+      <label>Nombres de los jugadores</label>
+      <div class="players-config" id="playerNamesConfig"></div>
+    </div>
+
+    <div class="field">
+      <label>¿Quién reparte en la primera ronda?</label>
+      <select id="firstDealer"></select>
+      <small>Después la reparte rota automáticamente entre todos.</small>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn" onclick="startGame()">Comenzar partida</button>
+    </div>
+  </section>
+
+  <!-- ============ GAME SCREEN ============ -->
+  <section id="gameScreen" class="hidden">
+
+    <div id="winnerBanner" class="winner-banner hidden"></div>
+
+    <div class="scoreboard" id="scoreboard"></div>
+
+    <div class="card-panel">
+      <div class="round-info">
+        <div>
+          <div class="cards-count" id="cardsCountDisplay">-</div>
+          <div class="cards-label">cartas repartidas esta ronda</div>
+        </div>
+        <div class="round-num" id="roundNumDisplay">Ronda 1</div>
+      </div>
+
+      <!-- Bidding phase -->
+      <div id="biddingPhase">
+        <h2>Bazas apostadas</h2>
+        <div class="bid-list" id="bidList"></div>
+        <div class="btn-row">
+          <button class="btn" id="confirmBidsBtn" onclick="confirmBids()">Confirmar apuestas</button>
+        </div>
+      </div>
+
+      <!-- Results phase -->
+      <div id="resultsPhase" class="hidden">
+        <h2>¿Quién cumplió su apuesta?</h2>
+        <div id="resultList"></div>
+        <div class="btn-row">
+          <button class="btn" id="closeRoundBtn" onclick="closeRound()">Cerrar ronda</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-panel">
+      <h2>Historial</h2>
+      <div class="history-wrap">
+        <table id="historyTable">
+          <thead><tr id="historyHead"></tr></thead>
+          <tbody id="historyBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn danger" onclick="finishGame()">Finalizar partida</button>
+      <button class="btn secondary" onclick="resetGame()">Nueva partida</button>
+    </div>
+  </section>
+
+  <footer>Estratega · anotador de partidas</footer>
+</div>
+
+<script>
+/* ===================== STATE ===================== */
+const STORAGE_KEY = 'estratega_state_v1';
+let state = null;
+
+function defaultState(){
+  return {
+    mode: 'uno',
+    numPlayers: 4,
+    target: 100,
+    firstHand: 3,
+    players: [], // {name, score}
+    started: false,
+    dealerIndex: 0,
+    roundNumber: 1,
+    cardsCount: 3,
+    direction: 1,
+    currentBids: [], // array of numbers or null, indexed by player index
+    phase: 'bidding', // 'bidding' | 'results'
+    currentResults: [], // array of true/false/null
+    history: [], // {round, dealer, cards, order:[playerIdx...], bids:{idx:val}, results:{idx:bool}, deltas:{idx:num}}
+    winnerIndex: null,
+    finished: false
+  };
+}
+
+function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+function load(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(raw){
+    try{ state = JSON.parse(raw); return true; }catch(e){ return false; }
+  }
+  return false;
+}
+
+/* ===================== CONFIG SCREEN LOGIC ===================== */
+function setMode(mode){
+  state = state || defaultState();
+  state.mode = mode;
+  document.querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelector(`.toggle-btn[data-mode="${mode}"]`).classList.add('active');
+  onFirstHandInput();
+  updateMaxHint();
+}
+
+function changePlayers(delta){
+  const input = document.getElementById('numPlayers');
+  let v = parseInt(input.value||4) + delta;
+  v = Math.max(2, Math.min(8, v));
+  input.value = v;
+  onPlayersInput();
+}
+
+function onPlayersInput(){
+  let v = parseInt(document.getElementById('numPlayers').value);
+  if(isNaN(v)) return;
+  v = Math.max(2, Math.min(8, v));
+  renderPlayerNameInputs(v);
+  updateMaxHint();
+}
+
+function computeMax(numPlayers){
+  return Math.max(1, Math.floor(40 / numPlayers));
+}
+
+function updateMaxHint(){
+  const numPlayers = parseInt(document.getElementById('numPlayers').value) || 4;
+  const deckMax = computeMax(numPlayers);
+  const mode = document.querySelector('.toggle-btn.active').dataset.mode;
+  let userMax = parseInt(document.getElementById('maxCards').value) || 7;
+  let max = Math.min(userMax, deckMax);
+  const maxUsed = mode === 'impares' ? (max % 2 === 0 ? max - 1 : max) : max;
+
+  document.getElementById('maxCardsHint').textContent =
+    `Con ${numPlayers} jugadores el mazo permite repartir hasta ${deckMax} cartas por jugador (mazo de 40 cartas).`;
+
+  let customMsg = `La ronda de mayor reparto será de ${maxUsed} cartas.`;
+  if(userMax > deckMax){
+    customMsg += ` (Se ajustó de ${userMax} a ${deckMax === maxUsed ? deckMax : maxUsed} porque el mazo no da para más con ${numPlayers} jugadores.)`;
+  }
+  document.getElementById('maxCardsCustomHint').textContent = customMsg;
+}
+
+function onFirstHandInput(){
+  const mode = document.querySelector('.toggle-btn.active').dataset.mode;
+  let v = parseInt(document.getElementById('firstHand').value) || 1;
+  if(mode === 'impares' && v % 2 === 0){
+    v = v + 1;
+    document.getElementById('firstHand').value = v;
+    document.getElementById('firstHandHint').textContent =
+      'En modo Impares la primera mano debe ser un número impar (ajustado automáticamente).';
+  } else {
+    document.getElementById('firstHandHint').textContent =
+      'El reparto siempre empieza subiendo hasta el máximo y recién ahí baja hasta 1, para volver a subir.';
+  }
+}
+
+function renderPlayerNameInputs(n){
+  const container = document.getElementById('playerNamesConfig');
+  const existing = container.querySelectorAll('input');
+  const prevValues = Array.from(existing).map(i=>i.value);
+  container.innerHTML = '';
+  for(let i=0;i<n;i++){
+    const row = document.createElement('div');
+    row.className = 'player-name-row';
+    row.innerHTML = `<div class="num">${i+1}</div>
+      <input type="text" id="pname_${i}" value="${prevValues[i] ? prevValues[i] : 'Jugador ' + (i+1)}"
+        oninput="updateFirstDealerOptions()">`;
+    container.appendChild(row);
+  }
+  updateFirstDealerOptions();
+}
+
+function updateFirstDealerOptions(){
+  const select = document.getElementById('firstDealer');
+  const prevSelected = select.value;
+  const inputs = document.querySelectorAll('#playerNamesConfig input[type=text]');
+  select.innerHTML = '';
+  inputs.forEach((inp, idx)=>{
+    const opt = document.createElement('option');
+    opt.value = idx;
+    opt.textContent = inp.value.trim() || ('Jugador ' + (idx+1));
+    select.appendChild(opt);
+  });
+  if(prevSelected !== '' && prevSelected < inputs.length){
+    select.value = prevSelected;
+  }
+}
+
+/* ===================== START GAME ===================== */
+function advance(current, direction, step, max, min=1){
+  let next = current + direction*step;
+  let newDir = direction;
+  if(next > max){ newDir = -1; next = current - step; }
+  else if(next < min){ newDir = 1; next = current + step; }
+  return {next, newDir};
+}
+
+function startGame(){
+  const numPlayers = Math.max(2, Math.min(8, parseInt(document.getElementById('numPlayers').value) || 4));
+  const mode = document.querySelector('.toggle-btn.active').dataset.mode;
+  const target = parseInt(document.getElementById('targetScore').value) || 100;
+  let firstHand = parseInt(document.getElementById('firstHand').value) || 3;
+  if(mode === 'impares' && firstHand % 2 === 0) firstHand += 1;
+
+  const deckMax = computeMax(numPlayers);
+  const userMax = parseInt(document.getElementById('maxCards').value) || 7;
+  const max = Math.min(userMax, deckMax);
+  const maxUsed = mode === 'impares' ? (max % 2 === 0 ? max - 1 : max) : max;
+  firstHand = Math.min(firstHand, maxUsed);
+
+  const players = [];
+  for(let i=0;i<numPlayers;i++){
+    const nameInput = document.getElementById('pname_' + i);
+    const name = (nameInput && nameInput.value.trim()) ? nameInput.value.trim() : ('Jugador ' + (i+1));
+    players.push({name, score:0});
+  }
+
+  state = defaultState();
+  state.mode = mode;
+  state.numPlayers = numPlayers;
+  state.target = target;
+  state.firstHand = firstHand;
+  state.players = players;
+  state.started = true;
+  const firstDealerVal = parseInt(document.getElementById('firstDealer').value);
+  state.dealerIndex = (!isNaN(firstDealerVal) && firstDealerVal >= 0 && firstDealerVal < numPlayers) ? firstDealerVal : 0;
+  state.roundNumber = 1;
+  state.cardsCount = firstHand;
+  state.direction = 1;
+  state.maxUsed = maxUsed;
+  state.phase = 'bidding';
+  state.currentBids = new Array(numPlayers).fill(null);
+  state.currentResults = new Array(numPlayers).fill(null);
+  state.history = [];
+  state.winnerIndex = null;
+
+  save();
+  renderGame();
+}
+
+/* ===================== BIDDING ORDER ===================== */
+// dealer bids LAST (restricted). order = dealer+1, dealer+2, ..., dealer
+function biddingOrder(){
+  const n = state.numPlayers;
+  const order = [];
+  for(let i=1;i<=n;i++){
+    order.push((state.dealerIndex + i) % n);
+  }
+  return order; // last element === dealerIndex
+}
+
+/* ===================== RENDER: GAME SCREEN ===================== */
+function renderGame(){
+  document.getElementById('configScreen').classList.add('hidden');
+  document.getElementById('gameScreen').classList.remove('hidden');
+  renderScoreboard();
+  renderRoundInfo();
+  renderWinnerBanner();
+  const roundCard = document.getElementById('biddingPhase').closest('.card-panel');
+  if(state.finished){
+    document.getElementById('biddingPhase').classList.add('hidden');
+    document.getElementById('resultsPhase').classList.add('hidden');
+    if(roundCard) roundCard.classList.add('hidden');
+  } else {
+    if(roundCard) roundCard.classList.remove('hidden');
+    if(state.phase === 'bidding'){
+      document.getElementById('biddingPhase').classList.remove('hidden');
+      document.getElementById('resultsPhase').classList.add('hidden');
+      renderBidList();
+    } else {
+      document.getElementById('biddingPhase').classList.add('hidden');
+      document.getElementById('resultsPhase').classList.remove('hidden');
+      renderResultList();
+    }
+  }
+  renderHistory();
+  document.querySelector('.btn.danger[onclick="finishGame()"]').classList.toggle('hidden', state.finished);
+}
+
+function renderScoreboard(){
+  const sb = document.getElementById('scoreboard');
+  sb.innerHTML = '';
+  state.players.forEach((p, idx)=>{
+    const card = document.createElement('div');
+    card.className = 'player-card' + (idx === state.dealerIndex ? ' dealer' : '');
+    const bidBadge = (state.phase === 'bidding' && state.currentBids[idx] !== null)
+      ? `<div class="badge">${state.currentBids[idx]}</div>`
+      : (state.phase === 'results' && state.currentBids[idx] !== null ? `<div class="badge">${state.currentBids[idx]}</div>` : '');
+    const dealerTag = idx === state.dealerIndex ? `<div class="dealer-tag">Reparte</div>` : '';
+    card.innerHTML = `${dealerTag}${bidBadge}
+      <div class="pname">${escapeHtml(p.name)}</div>
+      <div class="pscore">${p.score}</div>`;
+    sb.appendChild(card);
+  });
+}
+
+function renderRoundInfo(){
+  document.getElementById('cardsCountDisplay').textContent = state.cardsCount;
+  document.getElementById('roundNumDisplay').textContent = 'Ronda ' + state.roundNumber;
+}
+
+function renderWinnerBanner(){
+  const banner = document.getElementById('winnerBanner');
+  if(state.winnerIndex !== null){
+    const w = state.players[state.winnerIndex];
+    banner.classList.remove('hidden');
+    banner.innerHTML = `🏆 ¡Ganó ${escapeHtml(w.name)} con ${w.score} puntos!
+      <span class="sub">Podés seguir jugando otra ronda o empezar una nueva partida.</span>`;
+  } else {
+    banner.classList.add('hidden');
+  }
+}
+
+function renderBidList(){
+  const order = biddingOrder();
+  const list = document.getElementById('bidList');
+  list.innerHTML = '';
+  order.forEach((idx, pos)=>{
+    const isLast = pos === order.length - 1;
+    const p = state.players[idx];
+    const row = document.createElement('div');
+    row.className = 'bid-row';
+    row.id = 'bidrow_' + idx;
+    row.innerHTML = `
+      <div class="pname">${escapeHtml(p.name)} ${isLast ? '<span class="tag">no puede completar el número exacto de bazas</span>' : ''}</div>
+      <input type="number" min="0" max="${state.cardsCount}" id="bidinput_${idx}"
+        value="${state.currentBids[idx] !== null ? state.currentBids[idx] : ''}"
+        oninput="onBidChange(${idx})">
+    `;
+    list.appendChild(row);
+  });
+  validateBids();
+}
+
+function onBidChange(idx){
+  const el = document.getElementById('bidinput_' + idx);
+  let v = el.value === '' ? null : parseInt(el.value);
+  if(v !== null){
+    v = Math.max(0, Math.min(state.cardsCount, v));
+  }
+  state.currentBids[idx] = v;
+  save();
+  validateBids();
+  renderScoreboard();
+}
+
+function validateBids(){
+  const order = biddingOrder();
+  const lastIdx = order[order.length - 1];
+  let allFilled = state.currentBids.every(v => v !== null);
+  let lastRow = document.getElementById('bidrow_' + lastIdx);
+  // remove old warning
+  const oldWarn = lastRow ? lastRow.querySelector('.warn') : null;
+  if(oldWarn) oldWarn.remove();
+  if(lastRow) lastRow.classList.remove('error');
+
+  let invalid = false;
+  if(state.currentBids[lastIdx] !== null){
+    const sumOthers = order.slice(0, -1).reduce((acc, i)=> acc + (state.currentBids[i] || 0), 0);
+    const forbidden = state.cardsCount - sumOthers;
+    if(state.currentBids[lastIdx] === forbidden && forbidden >= 0 && forbidden <= state.cardsCount){
+      invalid = true;
+      lastRow.classList.add('error');
+      const warn = document.createElement('div');
+      warn.className = 'warn';
+      warn.textContent = `No puede cantar ${forbidden}: la suma de bazas no puede ser igual a las ${state.cardsCount} repartidas.`;
+      lastRow.appendChild(warn);
+    }
+  }
+
+  document.getElementById('confirmBidsBtn').disabled = !allFilled || invalid;
+}
+
+function confirmBids(){
+  state.phase = 'results';
+  state.currentResults = new Array(state.numPlayers).fill(null);
+  save();
+  renderGame();
+}
+
+function renderResultList(){
+  const order = biddingOrder();
+  const container = document.getElementById('resultList');
+  container.innerHTML = '';
+  order.forEach(idx=>{
+    const p = state.players[idx];
+    const row = document.createElement('div');
+    row.className = 'result-row';
+    const res = state.currentResults[idx];
+    row.innerHTML = `
+      <div class="pname">${escapeHtml(p.name)}</div>
+      <div class="bidval">Apostó ${state.currentBids[idx]}</div>
+      <div class="result-toggle">
+        <button type="button" class="yes ${res === true ? 'active' : ''}" onclick="setResult(${idx}, true)">Cumplió</button>
+        <button type="button" class="no ${res === false ? 'active' : ''}" onclick="setResult(${idx}, false)">No cumplió</button>
+      </div>
+    `;
+    container.appendChild(row);
+  });
+  document.getElementById('closeRoundBtn').disabled = state.currentResults.some(r => r === null);
+}
+
+function setResult(idx, val){
+  state.currentResults[idx] = val;
+  save();
+  renderResultList();
+}
+
+function closeRound(){
+  const order = biddingOrder();
+  const deltas = {};
+  const bidsSnapshot = {};
+  const resultsSnapshot = {};
+
+  state.players.forEach((p, idx)=>{
+    const bid = state.currentBids[idx];
+    const hit = state.currentResults[idx];
+    const delta = hit ? (5 + bid) : 0;
+    p.score += delta;
+    deltas[idx] = delta;
+    bidsSnapshot[idx] = bid;
+    resultsSnapshot[idx] = hit;
+  });
+
+  state.history.push({
+    round: state.roundNumber,
+    dealer: state.dealerIndex,
+    cards: state.cardsCount,
+    order: order,
+    bids: bidsSnapshot,
+    results: resultsSnapshot,
+    deltas: deltas
+  });
+
+  // check winner
+  let winnerIndex = null;
+  let bestScore = -1;
+  state.players.forEach((p, idx)=>{
+    if(p.score >= state.target && p.score > bestScore){
+      winnerIndex = idx;
+      bestScore = p.score;
+    }
+  });
+  state.winnerIndex = winnerIndex;
+
+  // advance round
+  state.roundNumber += 1;
+  state.dealerIndex = (state.dealerIndex + 1) % state.numPlayers;
+  const step = state.mode === 'impares' ? 2 : 1;
+  const adv = advance(state.cardsCount, state.direction, step, state.maxUsed, 1);
+  state.cardsCount = adv.next;
+  state.direction = adv.newDir;
+
+  state.phase = 'bidding';
+  state.currentBids = new Array(state.numPlayers).fill(null);
+  state.currentResults = new Array(state.numPlayers).fill(null);
+
+  save();
+  renderGame();
+}
+
+function renderHistory(){
+  const head = document.getElementById('historyHead');
+  const body = document.getElementById('historyBody');
+  head.innerHTML = `<th>Ronda</th><th>Cartas</th>` +
+    state.players.map(p=>`<th>${escapeHtml(p.name)}</th>`).join('');
+  body.innerHTML = '';
+
+  if(state.history.length === 0){
+    body.innerHTML = `<tr><td colspan="${state.numPlayers+2}" style="opacity:0.5; padding:16px;">Todavía no se cerró ninguna ronda.</td></tr>`;
+    return;
+  }
+
+  state.history.forEach(h=>{
+    const tr = document.createElement('tr');
+    let cells = `<td>${h.round}</td><td class="cardsn">${h.cards}</td>`;
+    state.players.forEach((p, idx)=>{
+      const bid = h.bids[idx];
+      const hit = h.results[idx];
+      const delta = h.deltas[idx];
+      const cls = hit ? 'cell-hit' : 'cell-miss';
+      cells += `<td class="${cls}">${bid} → ${hit ? '+' + delta : '0'}</td>`;
+    });
+    tr.innerHTML = cells;
+    body.appendChild(tr);
+  });
+
+  const trTotal = document.createElement('tr');
+  let totalCells = `<td colspan="2" style="text-align:right; color:var(--gold-soft);">Total</td>`;
+  state.players.forEach(p=>{
+    totalCells += `<td style="font-weight:bold; color:var(--cream);">${p.score}</td>`;
+  });
+  trTotal.innerHTML = totalCells;
+  body.appendChild(trTotal);
+}
+
+function finishGame(){
+  if(!confirm('¿Finalizar la partida ahora? Se declarará ganador a quien tenga más puntos, aunque no haya llegado al puntaje objetivo.')){
+    return;
+  }
+  let winnerIndex = 0;
+  state.players.forEach((p, idx)=>{
+    if(p.score > state.players[winnerIndex].score) winnerIndex = idx;
+  });
+  state.winnerIndex = winnerIndex;
+  state.finished = true;
+  save();
+  renderGame();
+}
+
+function resetGame(){
+  if(!confirm('¿Seguro que querés empezar una partida nueva? Se perderá el historial actual.')){
+    return;
+  }
+  localStorage.removeItem(STORAGE_KEY);
+  state = defaultState();
+  document.getElementById('gameScreen').classList.add('hidden');
+  document.getElementById('configScreen').classList.remove('hidden');
+  document.getElementById('numPlayers').value = 4;
+  renderPlayerNameInputs(4);
+  updateMaxHint();
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+/* ===================== INIT ===================== */
+window.addEventListener('DOMContentLoaded', ()=>{
+  const loaded = load();
+  if(loaded && state && state.started){
+    renderGame();
+  } else {
+    state = defaultState();
+    renderPlayerNameInputs(4);
+    updateMaxHint();
+  }
+});
+</script>
+</body>
+</html>
